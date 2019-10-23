@@ -1,0 +1,41 @@
+//choosing the image from the collection with no cloud cover for the certain date range
+var collection = ee.ImageCollection (Landsat5)
+.filterDate('1984-01-01','1985-01-01')
+.filterBounds(Russia_4)
+.sort('CLOUD_COVER',false);
+
+//mosaic the images
+var median = collection.median();
+
+var result = median.select('B5','B4','B1');
+
+//showing the result and SRTM on the map below
+Map.addLayer(result,{},'Landsat');
+Map.addLayer(SRTM, {min:-50, max:200},'SRTM');
+
+// Get a list of all dates properties.
+var dates = collection
+    .map(function(image) {
+      return ee.Feature(null, {'date': image.date().format('YYYY-MM-dd')})
+    })
+    .distinct('date')
+    .aggregate_array('date');
+print (dates);
+
+//Export the Landsat, specifying scale and region.
+Export.image.toDrive({
+  image: result.select("B5","B4","B1"),
+  description: 'Russia_4_Landsat',
+  scale: 30,
+  region: Russia_4,
+  maxPixels: 1e12,
+});
+
+//Export the SRTM, specifying scale and region.
+Export.image.toDrive({
+  image: SRTM,
+  description: 'Russia_4_SRTM',
+  scale: 30,
+  region: Russia_4,
+  maxPixels: 1e12,
+});
